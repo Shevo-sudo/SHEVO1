@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>المباحث الجنائية - سجل التحقيقات</title>
+  <!-- مكتبة الصوت العربي السحابي -->
+  <script src="https://code.responsivevoice.org/responsivevoice.js"></script>
   <style>
     :root {
       --desk-dark: #0a0d13;
@@ -1572,7 +1574,6 @@
 
   let currentTierView = 1;
 
-  // تحميل قائمة الأصوات تلقائياً فور تجهيز المتصفح لها
   let availableVoices = [];
   function populateVoices() {
     if ('speechSynthesis' in window) {
@@ -1584,12 +1585,16 @@
     window.speechSynthesis.onvoiceschanged = populateVoices;
   }
 
-  // مشغل صوت احتياطي عالمي عبر الإنترنت
   let activeAudioPlayer = null;
 
-  // دالة النطق الصوتي المحسنة والمضمونة 100%
+  // دالة النطق الصوتي العربي المحسنة
   window.speakText = function(text) {
-    // إيقاف أي صوت سابق
+    if (!text) return;
+
+    // إيقاف أي أصوات سابقة
+    if (window.responsiveVoice) {
+      responsiveVoice.cancel();
+    }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
@@ -1598,42 +1603,49 @@
       activeAudioPlayer = null;
     }
 
-    if (!text) return;
+    // تنظيف النص من الرموز التعبيرية والإيموجي لضمان نطق الحروف بسلاسة
+    const cleanText = text.replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, '').trim();
 
-    // محاولة إيجاد صوت عربي مثبت على جهاز اللاعب
+    // 1. الأولوية لمكتبة ResponsiveVoice بصوت أنثوي عربي واضح
+    if (window.responsiveVoice && responsiveVoice.voiceSupport()) {
+      try {
+        responsiveVoice.speak(cleanText, "Arabic Female", { rate: 0.9, pitch: 1 });
+        return;
+      } catch (e) {
+        console.warn("ResponsiveVoice failed, falling back...");
+      }
+    }
+
+    // 2. البحث عن صوت عربي في نظام الجهاز
     if ('speechSynthesis' in window) {
       if (availableVoices.length === 0) {
         availableVoices = window.speechSynthesis.getVoices();
       }
-      
-      const arabicVoice = availableVoices.find(v => v.lang.includes('ar') || v.lang.startsWith('ar-'));
-
+      const arabicVoice = availableVoices.find(v => v.lang.startsWith('ar'));
       if (arabicVoice) {
-        const utterance = new SpeechSynthesisUtterance(text);
+        const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.voice = arabicVoice;
         utterance.lang = arabicVoice.lang;
         utterance.rate = 0.95;
-        utterance.pitch = 1.0;
         window.speechSynthesis.speak(utterance);
         return;
       }
     }
 
-    // بديل فوري عبر خدمة تحويل النص إلى كلام العربية
+    // 3. المشغل الاحتياطي عبر الإنترنت
     try {
-      const cleanText = encodeURIComponent(text.substring(0, 180));
-      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${cleanText}`;
+      const urlText = encodeURIComponent(cleanText.substring(0, 150));
+      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${urlText}`;
       activeAudioPlayer = new Audio(audioUrl);
       activeAudioPlayer.play().catch(e => {
-        // في حال تم حظر التشغيل التلقائي من المتصفح
         if ('speechSynthesis' in window) {
-          const fallbackUtterance = new SpeechSynthesisUtterance(text);
+          const fallbackUtterance = new SpeechSynthesisUtterance(cleanText);
           fallbackUtterance.lang = 'ar';
           window.speechSynthesis.speak(fallbackUtterance);
         }
       });
     } catch (e) {
-      console.warn("تعذر تشغيل الصوت الاحتياطي:", e);
+      console.error(e);
     }
   };
 
