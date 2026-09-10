@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>المباحث الجنائية - سجل التحقيقات</title>
-  <!-- مكتبة الصوت العربي السحابي -->
+  <!-- مكتبة الصوت السحابي -->
   <script src="https://code.responsivevoice.org/responsivevoice.js"></script>
   <style>
     :root {
@@ -416,7 +416,7 @@
   <div class="case-header">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
       <h2 id="case-title" style="margin: 0;">جاري فتح ملف القضية...</h2>
-      <button class="audio-btn" onclick="speakCaseBrief()" title="استمع لملخص القضية">🔊 استمع للملخص</button>
+      <button class="audio-btn" onclick="speakCaseBrief()" title="استمع لملخص القضية بالحعامية">🔊 اسمع الملخص</button>
     </div>
     <p id="case-brief"></p>
   </div>
@@ -1574,85 +1574,70 @@
 
   let currentTierView = 1;
 
-  let availableVoices = [];
-  function populateVoices() {
-    if ('speechSynthesis' in window) {
-      availableVoices = window.speechSynthesis.getVoices();
-    }
-  }
-  populateVoices();
-  if ('speechSynthesis' in window && window.speechSynthesis.onvoiceschanged !== undefined) {
-    window.speechSynthesis.onvoiceschanged = populateVoices;
+  // قاموس التحويل الذكي للهجة المصرية العامية الواضحة
+  function convertToEgyptian(text) {
+    if (!text) return "";
+    return text
+      .replace(/مقتل/g, "حادثة قتل")
+      .replace(/إثر/g, "بسبب")
+      .replace(/تم/g, "اتعمل")
+      .replace(/عُثر على/g, "لاقوا")
+      .replace(/وجد/g, "لاقوا")
+      .replace(/فُتحت/g, "اتفتحت")
+      .replace(/أثبت/g, "بين")
+      .replace(/تسبب/g, "عمل")
+      .replace(/التي/g, "اللي")
+      .replace(/الذي/g, "اللي")
+      .replace(/الذين/g, "اللي")
+      .replace(/حيث/g, "لما")
+      .replace(/سقطت/g, "وقعت")
+      .replace(/بسبب/g, "علشان")
+      .replace(/لكن/g, "بس")
+      .replace(/إلا/g, "غير")
+      .replace(/سوف/g, "هـ")
+      .replace(/فإن/g, "يبقى")
+      .replace(/لا علم لي/g, "ماعرفش حاجة")
+      .replace(/تؤكد/g, "بتثبت");
   }
 
-  let activeAudioPlayer = null;
-
-  // دالة النطق الصوتي العربي المحسنة
+  // دالة النطق الصوتي باللهجة المصرية المضمونة
   window.speakText = function(text) {
     if (!text) return;
 
-    // إيقاف أي أصوات سابقة
     if (window.responsiveVoice) {
       responsiveVoice.cancel();
     }
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
     }
-    if (activeAudioPlayer) {
-      activeAudioPlayer.pause();
-      activeAudioPlayer = null;
-    }
 
-    // تنظيف النص من الرموز التعبيرية والإيموجي لضمان نطق الحروف بسلاسة
-    const cleanText = text.replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, '').trim();
+    // تحويل النص إلى العامية المصرية ليكون نطق الكلمات طبيعي جداً للمصريين
+    const egyptianText = convertToEgyptian(text);
+    const cleanText = egyptianText.replace(/[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]/gu, '').trim();
 
-    // 1. الأولوية لمكتبة ResponsiveVoice بصوت أنثوي عربي واضح
+    // تشغيل الصوت عبر محرك الرعاية السحابي بصوت عربي واضح
     if (window.responsiveVoice && responsiveVoice.voiceSupport()) {
       try {
-        responsiveVoice.speak(cleanText, "Arabic Female", { rate: 0.9, pitch: 1 });
+        responsiveVoice.speak(cleanText, "Arabic Female", { rate: 0.92, pitch: 1.0 });
         return;
       } catch (e) {
-        console.warn("ResponsiveVoice failed, falling back...");
+        console.warn("ResponsiveVoice error");
       }
     }
 
-    // 2. البحث عن صوت عربي في نظام الجهاز
+    // بديل المتصفح الداخلي
     if ('speechSynthesis' in window) {
-      if (availableVoices.length === 0) {
-        availableVoices = window.speechSynthesis.getVoices();
-      }
-      const arabicVoice = availableVoices.find(v => v.lang.startsWith('ar'));
-      if (arabicVoice) {
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.voice = arabicVoice;
-        utterance.lang = arabicVoice.lang;
-        utterance.rate = 0.95;
-        window.speechSynthesis.speak(utterance);
-        return;
-      }
-    }
-
-    // 3. المشغل الاحتياطي عبر الإنترنت
-    try {
-      const urlText = encodeURIComponent(cleanText.substring(0, 150));
-      const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=ar&client=tw-ob&q=${urlText}`;
-      activeAudioPlayer = new Audio(audioUrl);
-      activeAudioPlayer.play().catch(e => {
-        if ('speechSynthesis' in window) {
-          const fallbackUtterance = new SpeechSynthesisUtterance(cleanText);
-          fallbackUtterance.lang = 'ar';
-          window.speechSynthesis.speak(fallbackUtterance);
-        }
-      });
-    } catch (e) {
-      console.error(e);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
+      utterance.lang = 'ar-EG';
+      utterance.rate = 0.95;
+      window.speechSynthesis.speak(utterance);
     }
   };
 
   window.speakCaseBrief = function() {
     const c = HANDMADE_CASES.find(item => item.id === window.player.activeCaseId);
     if (c) {
-      window.speakText(c.title + ". " + c.brief);
+      window.speakText("ملخص القضية: " + c.title + ". " + c.brief);
     }
   };
 
@@ -1762,23 +1747,23 @@
     document.getElementById('case-title').innerText = c.title;
     document.getElementById('case-brief').innerText = c.brief;
 
-    // الأدلة المادية مع أزرار الاستماع
+    // الأدلة المادية مع أزرار الاستماع العامية
     document.getElementById('clues-list').innerHTML = c.clues.map((clue, idx) => `
       <div class="card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.08); padding-bottom: 4px;">
           <h4>${clue.t}</h4>
-          <button class="audio-btn" onclick="speakText(HANDMADE_CASES.find(x => x.id === ${id}).clues[${idx}].d)" title="استمع للدليل">🔊 استمع</button>
+          <button class="audio-btn" onclick="speakText(HANDMADE_CASES.find(x => x.id === ${id}).clues[${idx}].d)" title="اسمع الدليل">🔊 اسمع</button>
         </div>
         <p>${clue.d}</p>
       </div>
     `).join('');
 
-    // المشتبه بهم مع أزرار الاستماع
+    // المشتبه بهم مع أزرار الاستماع العامية
     document.getElementById('suspects-list').innerHTML = c.suspects.map((s, idx) => `
       <div class="card suspect-card">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.08); padding-bottom: 4px;">
           <h4>${s.n}</h4>
-          <button class="audio-btn" onclick="speakText('إفادة ' + HANDMADE_CASES.find(x => x.id === ${id}).suspects[${idx}].n + ': ' + HANDMADE_CASES.find(x => x.id === ${id}).suspects[${idx}].q)" title="استمع للإفادة">🔊 استمع</button>
+          <button class="audio-btn" onclick="speakText('كلام ' + HANDMADE_CASES.find(x => x.id === ${id}).suspects[${idx}].n + ': ' + HANDMADE_CASES.find(x => x.id === ${id}).suspects[${idx}].q)" title="اسمع الإفادة">🔊 اسمع</button>
         </div>
         <p><strong>الخلفية:</strong> ${s.b}</p>
         <div class="suspect-quote">"${s.q}"</div>
@@ -1850,7 +1835,7 @@
         if (c.id === 30) {
           title.innerText = "الوسام الجنائي الأكبر! 🎖️🎖️🎖️";
           title.style.color = "var(--accent)";
-          desc.innerHTML = `عبقري! لقد حللت أصعب 30 قضية جنائية مغلقة وحققت 3000 نقطة كاملة!<br><strong>مبروك ترقيتك لأعلى رتبة: رائد تحقيقات خاصة</strong>.`;
+          desc.innerHTML = `عالمي! لقد حللت أصعب 30 قضية جنائية مغلقة وحققت 3000 نقطة كاملة!<br><strong>مبروك ترقيتك لأعلى رتبة: رائد تحقيقات خاصة</strong>.`;
           saveGame();
           updateStatus();
           renderCasesNav();
