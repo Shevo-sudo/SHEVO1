@@ -80,6 +80,21 @@
       font-weight: bold;
       color: var(--accent);
     }
+    .leaderboard-btn {
+      background: #1c2230;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: 0.2s;
+    }
+    .leaderboard-btn:hover {
+      background: var(--accent);
+      color: #0d1117;
+    }
     .tier-tabs {
       display: flex;
       gap: 8px;
@@ -262,7 +277,7 @@
     .submit-btn:hover {
       opacity: 0.9;
     }
-    #verdict-modal {
+    #verdict-modal, #leaderboard-modal {
       position: fixed;
       inset: 0;
       background: rgba(5, 7, 10, 0.85);
@@ -302,7 +317,6 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    /* نافذة تسجيل الدخول الإجبارية */
     #auth-overlay {
       position: fixed;
       inset: 0;
@@ -348,12 +362,11 @@
 </head>
 <body>
 
-<!-- نافذة تسجيل الدخول بـ Firebase -->
 <div id="auth-overlay">
   <div class="auth-card">
     <h2 style="color: var(--accent); margin-bottom: 12px;">سجلات الأمن العام 📁</h2>
     <p style="color: var(--muted); font-size: 0.92rem; margin-bottom: 25px; line-height: 1.6;">
-      مرحباً بك أيها المحقق. يرجى تسجيل الدخول الرسمي لاعتماد رتبتك وتوثيق قضاياك في قاعدة بيانات المباحث.
+      مرحباً بك أيها المحقق. يرجى تسجيل الدخول الرسمي لاعتماد رتبتك وتوثيق نقاطك في قاعدة بيانات المباحث ولوحة الشرف.
     </p>
     <button class="google-btn" onclick="loginWithGoogle()">
       <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
@@ -369,7 +382,10 @@
       <span style="font-size: 0.85rem; color: var(--muted);" id="tier-indicator">المستوى 1</span>
       <span style="font-size: 0.85rem; color: var(--accent); margin-right: 8px;" id="player-name-display"></span>
     </div>
-    <div class="score-badge">الرصيد: <span class="score-val" id="player-score">0</span> نقطة</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="leaderboard-btn" onclick="openLeaderboard()">🏆 لوحة الشرف</button>
+      <div class="score-badge">الرصيد: <span class="score-val" id="player-score">0</span> نقطة</div>
+    </div>
   </div>
 
   <div class="tier-tabs">
@@ -421,10 +437,20 @@
   </div>
 </div>
 
-<!-- كود Firebase Authentication الرسمي -->
+<div id="leaderboard-modal">
+  <div class="modal-box" style="max-width: 480px;">
+    <h3 style="color: var(--accent); margin-bottom: 15px;">🏆 لوحة شرف المباحث</h3>
+    <div id="leaderboard-list" style="text-align: right; margin-bottom: 20px; max-height: 320px; overflow-y: auto;">
+      <p style="color: var(--muted);">جاري تحميل النتائج...</p>
+    </div>
+    <button onclick="closeLeaderboard()">إغلاق</button>
+  </div>
+</div>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCs3_A0c4ePPCiGcwnJ2zPcs-H4AKnEQno",
@@ -438,14 +464,20 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app);
   const provider = new GoogleAuthProvider();
+
+  let currentUser = null;
 
   onAuthStateChanged(auth, (user) => {
     const authOverlay = document.getElementById('auth-overlay');
     if (user) {
+      currentUser = user;
       authOverlay.style.display = 'none';
       document.getElementById('player-name-display').innerText = `| المحقق: ${user.displayName || user.email}`;
+      syncScoreToFirebase();
     } else {
+      currentUser = null;
       authOverlay.style.display = 'flex';
     }
   });
@@ -455,11 +487,68 @@
       alert("تعذر تسجيل الدخول: " + error.message);
     });
   };
+
+  window.syncScoreToFirebase = async function() {
+    if (!currentUser) return;
+    try {
+      await setDoc(doc(db, "leaderboard", currentUser.uid), {
+        name: currentUser.displayName || "محقق مجهول",
+        score: window.player.score,
+        rank: document.getElementById('player-rank').innerText,
+        solvedCount: window.player.solvedCases.length,
+        updatedAt: new Date()
+      }, { merge: true });
+    } catch (err) {
+      console.error("فشل مزامنة لوحة الشرف:", err);
+    }
+  };
+
+  window.openLeaderboard = async function() {
+    const modal = document.getElementById('leaderboard-modal');
+    const list = document.getElementById('leaderboard-list');
+    modal.style.display = 'flex';
+    list.innerHTML = '<p style="color: var(--muted);">جاري استدعاء سجلات المحققين...</p>';
+
+    try {
+      const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(10));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        list.innerHTML = '<p style="color: var(--muted); padding: 10px;">لا توجد سجلات بعد. كن أول من يتصدر!</p>';
+        return;
+      }
+
+      let html = '';
+      let rankIdx = 1;
+      snap.forEach((docItem) => {
+        const d = docItem.data();
+        const badge = rankIdx === 1 ? '🥇' : rankIdx === 2 ? '🥈' : rankIdx === 3 ? '🥉' : `#${rankIdx}`;
+        html += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem;">
+            <div>
+              <span style="font-weight: bold; margin-left: 6px;">${badge}</span>
+              <span>${d.name}</span>
+              <div style="font-size: 0.78rem; color: var(--muted); margin-top: 2px;">${d.rank || 'مساعد باحث'}</div>
+            </div>
+            <span style="color: var(--accent); font-weight: bold;">${d.score} نقطة</span>
+          </div>
+        `;
+        rankIdx++;
+      });
+      list.innerHTML = html;
+    } catch (err) {
+      list.innerHTML = '<p style="color: var(--danger);">تعذر تحميل القائمة. تحقق من إعدادات Firestore.</p>';
+      console.error(err);
+    }
+  };
+
+  window.closeLeaderboard = function() {
+    document.getElementById('leaderboard-modal').style.display = 'none';
+  };
 </script>
 
 <script>
   const HANDMADE_CASES = [
-    // ----------------- المستوى 1 (1 - 10) -----------------
     {
       id: 1, tier: 1,
       title: "قضية 1: لغز قصر البارون الموحل",
@@ -580,7 +669,7 @@
         { val: "mansoor", name: "منصور (مدير الأمن)" },
         { val: "adel", name: "عادل (فني الصيانة)" },
         { val: "sameh", name: "سامح (أمين العهدة)" },
-        { val: "tامر", name: "تامر (حارس البوابة)" }
+        { val: "tamer", name: "تامر (حارس البوابة)" }
       ],
       proofs: [
         { val: "keycard_wool", name: "بطاقة الدخول المشفرة والخيوط الصوفية الخضراء بفتحة التهوية" },
@@ -1124,7 +1213,7 @@
     }
   ];
 
-  let player = JSON.parse(localStorage.getItem('det_save_handcrafted')) || {
+  window.player = JSON.parse(localStorage.getItem('det_save_handcrafted')) || {
     score: 0,
     activeCaseId: 1,
     solvedCases: []
@@ -1133,21 +1222,24 @@
   let currentTierView = 1;
 
   function saveGame() {
-    localStorage.setItem('det_save_handcrafted', JSON.stringify(player));
+    localStorage.setItem('det_save_handcrafted', JSON.stringify(window.player));
+    if (window.syncScoreToFirebase) {
+      window.syncScoreToFirebase();
+    }
   }
 
   function updateStatus() {
-    const solvedCount = player.solvedCases.length;
+    const solvedCount = window.player.solvedCases.length;
     let rankTitle = "مساعد باحث جنائي";
     if (solvedCount >= 20) rankTitle = "نقيب مباحث (مُرقّى) 🎖️🎖️";
     else if (solvedCount >= 10) rankTitle = "ملازم تحقيقات (مُرقّى) 🎖️";
 
     document.getElementById('player-rank').innerText = rankTitle;
-    document.getElementById('player-score').innerText = player.score;
+    document.getElementById('player-score').innerText = window.player.score;
     document.getElementById('tier-indicator').innerText = `المستوى ${currentTierView}`;
 
     const btnTier2 = document.getElementById('btn-tier-2');
-    if (player.solvedCases.length >= 10) {
+    if (window.player.solvedCases.length >= 10) {
       btnTier2.innerText = "المستوى 2 (11 - 20) 🔓";
       btnTier2.classList.remove('locked');
     } else {
@@ -1156,8 +1248,8 @@
     }
   }
 
-  function switchTier(tier) {
-    if (tier === 2 && player.solvedCases.length < 10) {
+  window.switchTier = function(tier) {
+    if (tier === 2 && window.player.solvedCases.length < 10) {
       alert('يجب إنهاء جميع قضايا المستوى الأول أولاً لفتح المستوى الثاني!');
       return;
     }
@@ -1168,7 +1260,7 @@
     const firstCaseOfTier = (tier - 1) * 10 + 1;
     renderCasesNav();
     loadCase(firstCaseOfTier);
-  }
+  };
 
   function renderCasesNav() {
     const nav = document.getElementById('cases-nav');
@@ -1180,11 +1272,11 @@
       const c = HANDMADE_CASES.find(item => item.id === id);
       if (!c) continue;
 
-      const isSolved = player.solvedCases.includes(c.id);
-      const isAvailable = c.id === 1 || player.solvedCases.includes(c.id - 1);
+      const isSolved = window.player.solvedCases.includes(c.id);
+      const isAvailable = c.id === 1 || window.player.solvedCases.includes(c.id - 1);
 
       const cell = document.createElement('div');
-      cell.className = `case-cell ${c.id === player.activeCaseId ? 'active' : ''} ${isSolved ? 'solved' : ''} ${!isAvailable && !isSolved ? 'locked' : ''}`;
+      cell.className = `case-cell ${c.id === window.player.activeCaseId ? 'active' : ''} ${isSolved ? 'solved' : ''} ${!isAvailable && !isSolved ? 'locked' : ''}`;
       cell.innerText = c.id;
       cell.onclick = () => {
         if (isAvailable || isSolved) {
@@ -1198,7 +1290,7 @@
   }
 
   function loadCase(id) {
-    player.activeCaseId = id;
+    window.player.activeCaseId = id;
     currentTierView = id > 10 ? 2 : 1;
     document.getElementById('btn-tier-1').classList.toggle('active', currentTierView === 1);
     document.getElementById('btn-tier-2').classList.toggle('active', currentTierView === 2);
@@ -1233,17 +1325,17 @@
     showTab('clues');
   }
 
-  function showTab(tab) {
+  window.showTab = function(tab) {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
     const idx = tab === 'clues' ? 0 : (tab === 'suspects' ? 1 : 2);
     document.querySelectorAll('.tab-btn')[idx].classList.add('active');
     document.getElementById(`tab-${tab}`).classList.add('active');
-  }
+  };
 
-  function processVerdict() {
-    const c = HANDMADE_CASES.find(item => item.id === player.activeCaseId);
+  window.processVerdict = function() {
+    const c = HANDMADE_CASES.find(item => item.id === window.player.activeCaseId);
     const chosenCulprit = document.getElementById('culprit-select').value;
     const chosenProof = document.getElementById('proof-select').value;
 
@@ -1257,9 +1349,9 @@
     const desc = document.getElementById('modal-desc');
 
     if (chosenCulprit === c.ansCulprit && chosenProof === c.ansProof) {
-      if (!player.solvedCases.includes(c.id)) {
-        player.score += 100;
-        player.solvedCases.push(c.id);
+      if (!window.player.solvedCases.includes(c.id)) {
+        window.player.score += 100;
+        window.player.solvedCases.push(c.id);
 
         if (c.id === 10) {
           title.innerText = "ترقية عسكرية مستحقة! 🎖️";
@@ -1288,7 +1380,7 @@
       title.style.color = "var(--success)";
       desc.innerHTML = c.explain;
     } else {
-      player.score = Math.max(0, player.score - 30);
+      window.player.score = Math.max(0, window.player.score - 30);
       title.innerText = "استنتاج خاطئ (-30 نقطة) ❌";
       title.style.color = "var(--danger)";
       desc.innerText = "الدليل المختار لا يدحض حجة غياب المتهم أو أن المتهم ليس هو الفاعل الحقيقي. تم خصم 30 نقطة.";
@@ -1298,16 +1390,16 @@
     updateStatus();
     renderCasesNav();
     modal.style.display = 'flex';
-  }
+  };
 
-  function closeModal() {
+  window.closeModal = function() {
     document.getElementById('verdict-modal').style.display = 'none';
-  }
+  };
 
-  if (player.activeCaseId > 10) currentTierView = 2;
+  if (window.player.activeCaseId > 10) currentTierView = 2;
   updateStatus();
   renderCasesNav();
-  loadCase(player.activeCaseId);
+  loadCase(window.player.activeCaseId);
 </script>
 </body>
 </html>
