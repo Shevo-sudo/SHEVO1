@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المباحث الجنائية - سجل التحقيقات الواقعية</title>
+  <style>
+    :root {
+      --desk-dark: #0a0d13;
+      --card-bg: #141923;
+      --border-color: #273043;
+      --accent: #d4af37;
+      --accent-glow: rgba(212, 175, 55, 0.2);
+      --danger: #e63946;
+      --success: #2a9d8f;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      user-select: none;
+    }
+    body {
+      background-color: var(--desk-dark);
+      background-image: 
+        radial-gradient(circle at 50% 10%, rgba(212, 175, 55, 0.08) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 35px 35px, 35px 35px;
+      color: var(--text);
+      line-height: 1.6;
+      padding: 16px 12px;
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 920px;
+      width: 100%;
+    }
+    .officer-bar {
+      background: #11151f;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+    .rank-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .rank-badge {
+      background: #1c2230;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+    .score-badge {
+      background: #1c2230;
+      border: 1px solid var(--border-color);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    .score-val {
+      font-weight: bold;
+      color: var(--accent);
+    }
+    .cases-nav {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 6px;
+      margin-bottom: 15px;
+    }
+    .case-cell {
+      background: #131822;
+      border: 1px solid var(--border-color);
+      color: var(--muted);
+      padding: 9px 0;
+      text-align: center;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .case-cell.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: 0 0 8px var(--accent-glow);
+    }
+    .case-cell.solved {
+      background: rgba(42, 157, 143, 0.2);
+      border-color: var(--success);
+      color: var(--success);
+    }
+    .case-cell.locked {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+    .case-header {
+      background: linear-gradient(135deg, #161c28 0%, #11151f 100%);
+      border-right: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 15px;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      border-left: 1px solid var(--border-color);
+    }
+    .case-header h2 {
+      font-size: 1.25rem;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+    .case-header p {
+      font-size: 0.92rem;
+      color: #cbd5e1;
+      line-height: 1.6;
+    }
+    .tabs-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .tab-btn {
+      flex: 1;
+      background: #11151f;
+      border: 1px solid var(--border-color);
+      color: var(--muted);
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+      transition: 0.2s;
+    }
+    .tab-btn.active {
+      background: #1a202d;
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 14px;
+    }
+    .card h4 {
+      color: #fff;
+      margin-bottom: 6px;
+      font-size: 0.95rem;
+      border-bottom: 1px dashed rgba(255,255,255,0.08);
+      padding-bottom: 4px;
+    }
+    .card p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+    .suspect-card {
+      border-right: 3px solid var(--accent);
+    }
+    .suspect-quote {
+      background: #0c0f16;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+      font-style: italic;
+      color: #e2e8f0;
+      font-size: 0.82rem;
+      border-right: 2px solid var(--danger);
+    }
+    .verdict-panel {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 20px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    select {
+      width: 100%;
+      background: #0c0f16;
+      color: #fff;
+      border: 1px solid var(--border-color);
+      padding: 11px;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    .submit-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #a8232e, #7a151e);
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      padding: 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    .submit-btn:hover {
+      opacity: 0.9;
+    }
+    #verdict-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(5, 7, 10, 0.85);
+      backdrop-filter: blur(3px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+      z-index: 100;
+    }
+    .modal-box {
+      background: #141923;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      max-width: 520px;
+      width: 100%;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    }
+    .modal-box h3 {
+      font-size: 1.35rem;
+      margin-bottom: 10px;
+    }
+    .modal-box p {
+      color: #cbd5e1;
+      font-size: 0.92rem;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+    .modal-box button {
+      background: var(--accent);
+      color: #0d1117;
+      font-weight: bold;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="officer-bar">
+    <div class="rank-info">
+      <span class="rank-badge" id="player-rank">مساعد باحث جنائي</span>
+      <span style="font-size: 0.85rem; color: var(--muted);" id="tier-indicator">المستوى الأول: القضايا الجنائية الكبرى</span>
+    </div>
+    <div class="score-badge">الرصيد: <span class="score-val" id="player-score">0</span> نقطة</div>
+  </div>
+
+  <div class="cases-nav" id="cases-nav"></div>
+
+  <div class="case-header">
+    <h2 id="case-title">جاري فتح ملف القضية...</h2>
+    <p id="case-brief"></p>
+  </div>
+
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="showTab('clues')">الأدلة المادية (5) 🔎</button>
+    <button class="tab-btn" onclick="showTab('suspects')">المشتبه بهم (4) 👥</button>
+    <button class="tab-btn" onclick="showTab('verdict')">إصدار الاتهام ⚖️</button>
+  </div>
+
+  <div id="tab-clues" class="tab-content active">
+    <div class="grid-cards" id="clues-list"></div>
+  </div>
+
+  <div id="tab-suspects" class="tab-content">
+    <div class="grid-cards" id="suspects-list"></div>
+  </div>
+
+  <div id="tab-verdict" class="tab-content">
+    <div class="verdict-panel">
+      <div class="form-group">
+        <label>المتهم الحقيقي بالتدبير أو القتل:</label>
+        <select id="culprit-select"></select>
+      </div>
+      <div class="form-group">
+        <label>الدليل القاطع الذي يكشف كذبته:</label>
+        <select id="proof-select"></select>
+      </div>
+      <button class="submit-btn" onclick="processVerdict()">إحالة المتهم للمحاكمة (+100 / -30)</button>
+    </div>
+  </div>
+</div>
+
+<div id="verdict-modal">
+  <div class="modal-box">
+    <h3 id="modal-title"></h3>
+    <p id="modal-desc"></p>
+    <button onclick="closeModal()">متابعة</button>
+  </div>
+</div>
+
+<script>
+  // قاعدة بيانات كاملة ومكتوبة يدوياً 100% بدون أي توليد عشوائي
+  const HANDMADE_CASES = [
+    {
+      id: 1,
+      title: "قضية 1: لغز قصر البارون الموحل",
+      brief: "مقتل رجل الأعمال 'رؤوف' في مكتبه المغلق بضربة برونزية على الرأس وسرقة عقود أراضٍ. وقت الوفاة تحدد بـ 9:45 م وبدأت عاصفة مطرية في 9:40 م.",
+      clues: [
+        { t: "🕒 ساعة اليد المكسورة", d: "توقفت عند 9:45 م بدقة نتيجة الارتطام بالأرض أثناء السقوط." },
+        { t: "☕ فنجان قهوة بسكر دايت", d: "متبقٍ فيه ثلثه ودافئ جزئياً، والضحية لا يتناول بدائل السكر مطلقاً." },
+        { t: "🌧️ طين الشرفة مقاس 41", d: "آثار حذاء رياضي دخل المكتب بعد هطول المطر في 9:40 م." },
+        { t: "🔐 الخزنة الجدارية", d: "فُتحت عبر الرقم السري دون أي علامة كسر." },
+        { t: "📱 هاتف الضحية", d: "رسالة تهديد في 9:15 م تطالبه بتسليم أوراق الصفقة الليلة." }
+      ],
+      suspects: [
+        { n: "طارق (الشريك التجاري)", b: "مريض سكر يرتدي حذاء 44، ويستخدم السكر الدايت فقط.", q: "شربت القهوة وخرجت 9:00 م قبل نزول المطر لحضور عشاء بالماريوت!" },
+        { n: "مازن (ابن الأخ المدين)", b: "يرتدي حذاء رياضياً مقاس 41 ويعاني من ضائقة مالية.", q: "دخلت من الشرفة بعد المطر 9:50 م لأسرق الخزنة فرأيت الجثة وهربت." },
+        { n: "مروة (السكرتيرة)", b: "تعرف رمز الخزنة وترتدي كعباً مقاس 38.", q: "غادرت في 6:00 م والرمز السري مدون بمفكرة الضحية بدرجه." },
+        { n: "منير (السائق)", b: "حذاؤه رسمي 42 وكان بالمرأب.", q: "رأيت سيارة طارق تغادر 9:00 م، ورأيت خيال شخص بالحديقة في 9:35 م." }
+      ],
+      culprits: [
+        { val: "tarek", name: "طارق (الشريك)" },
+        { val: "mazen", name: "مازن (ابن الأخ)" },
+        { val: "marwa", name: "مروة (السكرتيرة)" },
+        { val: "monir", name: "منير (السائق)" }
+      ],
+      proofs: [
+        { val: "coffee", name: "فنجان القهوة بالسكر الدايت الدافئ (يدحض خروجه في 9:00)" },
+        { val: "mud", name: "طين الشرفة وحذاء مازن مقاس 41" },
+        { val: "watch", name: "توقف الساعة عند 9:45 م" },
+        { val: "safe", name: "رمز الخزنة المكتوب بالمفكرة" },
+        { val: "sms", name: "رسالة التهديد بالهاتف" }
+      ],
+      ansCulprit: "tarek",
+      ansProof: "coffee",
+      explain: "فنجان القهوة بالسكر الدايت لا يمكن أن يظل دافئاً لساعة ونصف! هذا يثبت وجود طارق في المكتب حتى وقت القتل (9:45 م). تعمد فتح الشرفة لتوريط مازن الذي دخل لاحقاً كلص فقط."
+    },
+    {
+      id: 2,
+      title: "قضية 2: سقوط صانع الساعات والعمود المؤجل",
+      brief: "مقتل صانع الساعات 'إدمون' داخل ورشته إثر سقوط عمود حديدي ثقيل عليه. المدفأة الكهربائية تعمل بأقصى طاقتها والنافذة محكمة الإغلاق رغم اعتدال الجو.",
+      clues: [
+        { t: "🧊 بركة مياه نظيفة", d: "بركة مياه ضخمة تحت الرافعة خالية تماماً من غبار ونشارة خشب الورشة." },
+        { t: "🎙️ شريط تسجيل الهاتف", d: "تسجيل صوتي لمكالمة هاتفية في 8:15 م يتحدث فيها الضحية مع صائغ مجاور." },
+        { t: "🔥 المدفأة الموجهة", d: "مسلطة مباشرة نحو موضع ارتكاز العمود الحديدي وليس نحو مقعد العمل." },
+        { t: "🧾 إيصال سداد بالبنك", d: "إيصال إيداع نقدي باسم المساعد سامي مختوم في فرع بنك بـ 8:12 م." },
+        { t: "🧤 قفازات مطاطية", d: "ملقاة بحاوية القمامة القريبة من متجر بيع الثلج الصناعي." }
+      ],
+      suspects: [
+        { n: "سامي (مساعد الورشة)", b: "خبير ميكانيكا وادعى تواجده بالبنك بين 8:00 و8:25 م.", q: "خرجت 7:45 م، وإدمون كان حياً وكلم الصائغ بالهاتف 8:15 م!" },
+        { n: "فؤاد (الصائغ المنافس)", b: "المتحدث بالمكالمة الهاتفية.", q: "كلمته 8:15 م وكان صوته طبيعياً، لكني لم أزره بالورشة اليوم." },
+        { n: "كريم (حارس المبنى)", b: "شاهد سامي بأكياس ضخمة.", q: "رأيت سامي يحمل أكياساً باردة جداً قبل خروجه للبنك بنصف ساعة." },
+        { n: "نبيل (مورد القطع)", b: "تشاجر مع الضحية في 7:30 م.", q: "خرجت غاضباً في 7:30 م وكان العمود ثابتاً في مكانه تماماً." }
+      ],
+      culprits: [
+        { val: "sami", name: "سامي (المساعد)" },
+        { val: "fouad", name: "فؤاد (الصائغ)" },
+        { val: "karim", name: "كريم (الحارس)" },
+        { val: "nabil", name: "نبيل (المورد)" }
+      ],
+      proofs: [
+        { val: "ice_heat", name: "بركة المياه أسفل العمود وتوجيه المدفأة لتأخير السقوط" },
+        { val: "call_tape", name: "مكالمة الهاتف في 8:15 م" },
+        { val: "receipt", name: "إيصال البنك في 8:12 م" },
+        { val: "gloves", name: "القفازات المطاطية بحاوية الثلج" },
+        { val: "fight", name: "شجار المورد في 7:30 م" }
+      ],
+      ansCulprit: "sami",
+      ansProof: "ice_heat",
+      explain: "سامي وضع عمود الورشة فوق كتلة ثلج ضخمة أمام المدفأة لتذوب ببطء ويسقط العمود بعد خروجه، ثم استخدم تسجيلاً مسبقاً للرد الآلي ليصنع حجة غياب في البنك!"
+    },
+    {
+      id: 3,
+      title: "قضية 3: سم النجوم في المعرض الفني",
+      brief: "تسمم الناقدة 'سوزان' في افتتاح المعرض بعد تناول كأسها الخاص، رغم أن جميع الضيوف شربوا من نفس الزجاجة والصينية دون أذى.",
+      clues: [
+        { t: "🧪 مركب السم العضوي", d: "سم مغلف لا يتحلل إلا عند ذوبان الثلج وامتزاجه بمشروب حمضي." },
+        { t: "🧊 قوالب ثلج نجمية", d: "كأس سوزان كان الوحيد الذي احتوى على مكعبات ثلج على شكل نجوم." },
+        { t: "🧤 قفازات حرارية عازلة", d: "عُثر عليها بحمام المعرض عليها آثار تبريد فائق بالنيتروجين السائل." },
+        { t: "🎨 لوحة تالفة بالماء", d: "لوحة مجاورة تناثرت عليها قطرات ماء مثلج متطايرة." },
+        { t: "📝 مسودة نقد قاسية", d: "مقال في حقيبة سوزان يتهم المعرض بالاحتيال الفني." }
+      ],
+      suspects: [
+        { n: "د. هاني (كيميائي وجامع لوحات)", b: "خبير بتجميد المركبات العضوية بالنيتروجين السائل.", q: "السم كان بالزجاجة كلها وضعف مناعة سوزان عجل بوفاتها!" },
+        { n: "فارس (الفنان صاحب المعرض)", b: "هددته سوزان بإنهاء مسيرته ونشر المقال.", q: "شربت من الزجاجة بنفسي أمام الضيوف لإثبات نقاء نيتي." },
+        { n: "نادين (مسؤولة الضيافة)", b: "أشرفت على طاولة المشروبات.", q: "أنا أحضرت الثلج المربع المعتاد، لكن شخصاً وضع النجوم بكأس سوزان." },
+        { n: "رؤى (مساعدة الناقدة)", b: "ترث حقوق نشر مقالات سوزان.", q: "كنت أقف عند المدخل ولم أقترب من المشروبات طوال المساء." }
+      ],
+      culprits: [
+        { val: "hani", name: "د. هاني (الكيميائي)" },
+        { val: "faris", name: "فارس (الفنان)" },
+        { val: "nadeen", name: "نادين (مسؤولة الضيافة)" },
+        { val: "roa", name: "رؤى (المساعدة)" }
+      ],
+      proofs: [
+        { val: "star_ice", name: "مكعبات ثلج النجوم المبردة بالنيتروجين والقفازات الحرارية" },
+        { val: "wine_bottle", name: "زجاجة المشروب العامة" },
+        { val: "critique", name: "مسودة المقال بحقيبة سوزان" },
+        { val: "painting", name: "قطرات الماء على اللوحة" },
+        { val: "tray", name: "صينية الكؤوس المشتركة" }
+      ],
+      ansCulprit: "hani",
+      ansProof: "star_ice",
+      explain: "د. هاني استغل درايته الكيميائية وجمد السم داخل مكعب ثلج نجمي بالنيتروجين السائل، ووضعه في كأسها ليذوب تدريجياً دون أن يترك أي أثر في الزجاجة العامة!"
+    },
+    {
+      id: 4,
+      title: "قضية 4: اختفاء الماسة الزرقاء والظلام المفتعل",
+      brief: "سرقة الماسة الزرقاء من قاعة المتحف أثناء انقطاع مفاجئ للكهرباء استمر دقيقتين في 1:00 فجراً دون إطلاق أي جرس إنذار.",
+      clues: [
+        { t: "⚡ قاطع التيار الرئيسي", d: "فُصل يدوياً من داخل غرفة التحكم المحصنة ببطاقة مشفرة." },
+        { t: "🔧 مسامير الواجهة الزجاجية", d: "فُكت من الداخل بمفك سداسي خاص بطاقم الصيانة دون كسر." },
+        { t: "🧤 خيوط صوف خضراء", d: "عُثر عليها عالقة بفتحة تهوية غرفة التحكم الكهربائي." },
+        { t: "📹 تسجيل كاميرا احتياطية", d: "رصد خيال شخص بزي أمني يعبر الممر في 12:59 فجراً." },
+        { t: "💳 سجل الدخول الممغنط", d: "دخول لغرفة التحكم ببطاقة مدير الأمن منصور في 12:58 فجراً." }
+      ],
+      suspects: [
+        { n: "منصور (مدير الأمن)", b: "يحمل بطاقة التحكم ويرتدي سترة صوفية خضراء.", q: "بطاقتي سُرقت مني أثناء جولتي وتفاجأت بانقطاع التيار!" },
+        { n: "عادل (فني الصيانة)", b: "يمتلك طقم المفكات السداسية.", q: "كنت نائماً بغرفة الاستراحة واستيقظت على صوت عودة التيار." },
+        { n: "سامح (أمين العهدة)", b: "خاسر في البورصة ويحتاج لسيولة.", q: "سلمت مفاتيح العرض لمنصور في 10:00 مساءً وخرجت أمام الحراس." },
+        { n: "تامر (حارس البوابة)", b: "كان يراقب البوابة الخارجية.", q: "لم يخرج أحد من البوابة الرئيسية سيراً على الأقدام وقت الحادث." }
+      ],
+      culprits: [
+        { val: "mansoor", name: "منصور (مدير الأمن)" },
+        { val: "adel", name: "عادل (فني الصيانة)" },
+        { val: "sameh", name: "سامح (أمين العهدة)" },
+        { val: "tamer", name: "تامر (حارس البوابة)" }
+      ],
+      proofs: [
+        { val: "keycard_wool", name: "بطاقة الدخول المشفرة والخيوط الصوفية الخضراء بفتحة التهوية" },
+        { val: "hex_screws", name: "مسامير الواجهة المفكوكة" },
+        { val: "cam_record", name: "تسجيل الكاميرا في 12:59 فجراً" },
+        { val: "safe_keys", name: "مفاتيح العهدة المسلمة" },
+        { val: "gate_guard", name: "شهادة حارس البوابة" }
+      ],
+      ansCulprit: "mansoor",
+      ansProof: "keycard_wool",
+      explain: "منصور دخل غرفة التحكم ببطاقته وفصل التيار يدوياً، ثم فر من فتحة التهوية التي علقت بها خيوط سترته الصوفية الخضراء الفريدة، مدعياً سرقة بطاقته للتملص."
+    },
+    {
+      id: 5,
+      title: "قضية 5: انتحار قبطان اليخت المزعوم",
+      brief: "العثور على قبطان اليخت 'فريد' ميتاً في قمرة القيادة بطلق ناري في الرأس. المسدس ملقى على مسافة مترين جهة يمينه، مع مسح للبصمات.",
+      clues: [
+        { t: "🩺 التقرير الطبي للضحية", d: "الضحية أعسر بالكامل ولديه شلل نصفي طفيف بيده اليمنى." },
+        { t: "🔫 وضعية المسدس الملقى", d: "المسدس وُجد جهة يمينه، مع مسح كامل للبصمات من المقبض." },
+        { t: "☕ كوب قهوة جاف", d: "قهوة مسكوبة على الخريطة جفت تماماً قبل الطلقة بساعتين." },
+        { t: "🧭 جهاز الـ GPS والمسار", d: "اليخت حُوّل مساره يدوياً نحو المياه الدولية قبل الحادث بربع ساعة." },
+        { t: "🧾 بوليصة تأمين بحري", d: "لا تصرف أي مليم في حالات الانتحار الصريح." }
+      ],
+      suspects: [
+        { n: "جلال (كبير الميكانيكيين)", b: "يدين للقبطان بمبلغ كبير وخبير بالمسارات.", q: "سمعت صوت طلقة وهرعت فوجدته قد انتحر بيده!" },
+        { n: "سامح (مساعد القبطان)", b: "كان نائماً بالقمرة السفلية.", q: "سلمت القيادة لفريد 11:00 م وتوجهت للنوم مباشرة." },
+        { n: "وائل (طاهي اليخت)", b: "أعد كوب القهوة للضحية.", q: "صعدت بالقهوة 9:00 م وكان القبطان يتشاجر هاتفياً مع شخص مجهول." },
+        { n: "راغب (شريك اليخت)", b: "مستفيد من الشحنة غير القانونية.", q: "كنت بغرفتي الخاصة أراجع كشوف الحسابات." }
+      ],
+      culprits: [
+        { val: "galal", name: "جلال (الميكانيكي)" },
+        { val: "sameh", name: "سامح (المساعد)" },
+        { val: "wael", name: "وائل (الطاهي)" },
+        { val: "ragheb", name: "راغب (الشريك)" }
+      ],
+      proofs: [
+        { val: "left_hand", name: "تقرير شلل اليد اليمنى وموضع المسدس ومسح البصمات" },
+        { val: "dry_coffee", name: "القهوة الجافة على الخريطة" },
+        { val: "gps_reroute", name: "تحويل مسار الـ GPS" },
+        { val: "insurance", name: "بوليصة التأمين ضد الانتحار" },
+        { val: "engine_noise", name: "أصوات غرفة المحركات" }
+      ],
+      ansCulprit: "galal",
+      ansProof: "left_hand",
+      explain: "جلال قتل القبطان ومسح البصمات وألقى المسدس جهة يمينه ليزيف انتحاراً، جاهلاً أن القبطان أعسر تماماً ويده اليمنى مشلولة طبياً ولا يمكنه إطلاق النار بها!"
+    },
+    {
+      id: 6,
+      title: "قضية 6: احتراق مستودع الأقمشة الموقوت",
+      brief: "اندلاع حريق هائل بمستودع أقمشة فاخرة وقت صلاة الجمعة. المالك ادعى حدوث ماس كهربائي مفاجئ أثناء وجوده بالمسجد.",
+      clues: [
+        { t: "⚗️ بقايا تفاعل كيميائي", d: "آثار مادة الصوديوم المعدني التي تشتعل ذاتياً عند ملامسة الماء." },
+        { t: "💧 بقايا قطارة ذائبة", d: "زجاج قطارة ماء بطيئة التنقيط موضوعة فوق كومة الصوديوم." },
+        { t: "📈 رفع قيمة التأمين", d: "رفع التعويض لخمسة أضعاف قبل الحادث بـ 48 ساعة فقط." },
+        { t: "⚡ قواطع الكهرباء المفصولة", d: "الفحص أثبت أن قواطع الكهرباء كانت مفصولة يدوياً قبل الحريق." },
+        { t: "📦 بضائع وهمية", d: "الصناديق المحترقة كانت معبأة بنفايات قطنية رخيصة وليست حريراً." }
+      ],
+      suspects: [
+        { n: "شريف (مالك المستودع)", b: "مفلس مصرفياً ولديه دراية بالمركبات الكيميائية.", q: "كنت بالصف الأول بالمسجد طوال الصلاة ولدي مئة شاهد!" },
+        { n: "سعيد (حارس المستودع)", b: "غادر البوابة لجلب الطعام وقت الصلاة.", q: "شممت رائحة غازات غريبة من الصناديق الخلفية قبل خروجي." },
+        { n: "فتحي (التاجر المنافس)", b: "هدد بإحراق أسعار السوق.", q: "كنت في بيتي مع عائلتي ولا علم لي بما يحدث بمخازنه." },
+        { n: "عصام (محاسب الشركة)", b: "رفض التوقيع على الجرد الأخير.", q: "شريف طلب مني تزوير فواتير البضائع لرفع قيمتها ورفضت." }
+      ],
+      culprits: [
+        { val: "sherif", name: "شريف (المالك)" },
+        { val: "saeed", name: "سعيد (الحارس)" },
+        { val: "fathy", name: "فتحي (المنافس)" },
+        { val: "essam", name: "عصام (المحاسب)" }
+      ],
+      proofs: [
+        { val: "sodium_dropper", name: "الصوديوم والقطارة ولوحة الكهرباء المفصولة يدوياً" },
+        { val: "insurance_boost", name: "رفع قيمة التأمين المفاجئ" },
+        { val: "fake_cargo", name: "صناديق النفايات الرخيصة" },
+        { val: "breaker", name: "فصل قواطع الكهرباء" },
+        { val: "mosque_alibi", name: "شهود المسجد" }
+      ],
+      ansCulprit: "sherif",
+      ansProof: "sodium_dropper",
+      explain: "شريف خطط للجريمة وصنع مؤقتاً كيميائياً بقطارة ماء فوق صوديوم معدني لتشتعل ذاتياً أثناء صلاته، وبطل ادعاء الماس الكهربائي لأن القواطع كانت مفصولة مسبقاً!"
+    },
+    {
+      id: 7,
+      title: "قضية 7: طعنة قبو المخطوطات المعتم",
+      brief: "مقتل أمين المكتبة بطعنة خنجر دقيقة في الشريان السباتي داخل قاعة المخطوطات المعزولة في ظلام دامس إثر انقطاع الكهرباء.",
+      clues: [
+        { t: "👓 نظارة القراءة الطبية", d: "سليمة تماماً ومغلقة داخل جيب الضحية وليس على عينيه." },
+        { t: "🕯️ شمعة باردة غير مشتعلة", d: "الفتيل بارد والقبو تحت الأرض بلا نوافذ ومعتم كلياً." },
+        { t: "🗡️ دقة مسار الطعنة", d: "الطعنة نُفذت بدقة جراحية من أول ضربة دون تردد." },
+        { t: "🦯 كشط طرف عصا معدنية", d: "كشط دقيق بحافة الطاولة يطابق سن عصا مكفوفين معدنية." },
+        { t: "📜 مخطوطة برايل مفقودة", d: "مخطوطة فلكية ذات حروف بارزة بطريقة برايل اختفت من الخزانة." }
+      ],
+      suspects: [
+        { n: "باهر (الباحث الكفيف)", b: "فقد بصره صغيراً ويتحرك بمهارة صوتية ولمسية فائقة.", q: "سمعت جلبة وسقوطاً وأنا بالطابق العلوي ولم أنزل للقبو!" },
+        { n: "عصام (المساعد ضعيف البصر)", b: "يعاني من قصر نظر حاد ولا يرى بلا نظارته.", q: "دخلت ورأيت ظلاً يفر في العتمة وحاولت اللحاق به فتعثرت." },
+        { n: "د. صفوت (أستاذ الآثار)", b: "يبحث عن المخطوطة ولديه نزاع قضائي مع الأمين.", q: "المكان كان مظلماً كالكحل، ويستحيل لأي شخص أن يرى موضع الرقبة ليطعن!" },
+        { n: "توفيق (عامل الأرشيف)", b: "مصباحه اليدوي مفرغ البطارية.", q: "انطفأت الكهرباء ونفدت بطاريتي فجلست مكاني حتى حضرت الشرطة." }
+      ],
+      culprits: [
+        { val: "baher", name: "باهر (الباحث الكفيف)" },
+        { val: "essam", name: "عصام (المساعد)" },
+        { val: "safwat", name: "د. صفوت" },
+        { val: "tawfiq", name: "توفيق (الأرشيفي)" }
+      ],
+      proofs: [
+        { val: "blind_precision", name: "دقة الطعنة بالعتمة المطلقة وسن العصا وسرقة مخطوطة برايل" },
+        { val: "glasses", name: "نظارة القراءة بجيب الضحية" },
+        { val: "cold_candle", name: "الشمعة المطفأة والباردة" },
+        { val: "battery", name: "بطارية المصباح الفارغة" },
+        { val: "dark_basement", name: "انعدام نوافذ القبو" }
+      ],
+      ansCulprit: "baher",
+      ansProof: "blind_precision",
+      explain: "في ظلام دامس وبلا أي مصدر ضوء، يستحيل على أي مبصر إصابة الشريان السباتي بدقة مليمترية من أول ضربة؛ باهر استغل قدرته الفائقة على الحركة بالحواس الأخرى وسرق مخطوطته المكتوبة ببرايل."
+    },
+    {
+      id: 8,
+      title: "قضية 8: اختفاء الجراح وتفاعل اللومينول",
+      brief: "اختفاء الجراح 'د. رمزي' وادعاء نائبه سفره المفاجئ، مع انبعاث رائحة معقمات ومبيضات قوية من حجرة العمليات الصغرى.",
+      clues: [
+        { t: "🧪 تفاعل اللومينول الضوئي", d: "إشعاع كيميائي أزرق كثيف تحت الأشعة فوق البنفسجية يكشف دماءً ممسوحة بمبيض." },
+        { t: "🔪 مشرط جراحي مقاس 11 مفقود", d: "المشرط الوحيد الناقص من علبة العمليات المعقمة والمختومة." },
+        { t: "✈️ تذكرة طيران غير مستخدمة", d: "حجز باسم الضحية لم يتم تأكيد صعوده للطائرة في المطار." },
+        { t: "🗑️ ملاءات محترقة", d: "نسيج قطني طبي محترق في محرقة نفايات العيادة الخلفية." },
+        { t: "💼 حقيبة وجواز الضحية", d: "وُجدا مخبأين داخل خزانة الأدوية المغلقة برمز النائب مجدي." }
+      ],
+      suspects: [
+        { n: "د. مجدي (نائب العيادة)", b: "سعى للاستحواذ على العيادة ويحمل رمز خزانة الأدوية.", q: "د. رمزي أخذ حقيبته وسافر لحضور مؤتمر طبي عاجل فجراً!" },
+        { n: "خالد (الممرض)", b: "تغيب عن نوبة الصباح دون إذن.", q: "غادرت 9:00 م وتركت د. مجدي ود. رمزي يتناقشان بحدة." },
+        { n: "عصمت (المحاسب)", b: "متهم باختلاس كان الضحية يوشك على كشفه.", q: "كنت أراجع الدفاتر بمكتبي ولم أدخل حجرة العمليات إطلاقاً." },
+        { n: "جابر (حارس المبنى)", b: "شاهد خروج سيارة مجدي فجراً.", q: "رأيت د. مجدي ينقل أكياساً ثقيلة لسيارته في 2:00 فجراً." }
+      ],
+      culprits: [
+        { val: "magdy", name: "د. مجدي (النائب)" },
+        { val: "khaled", name: "خالد (الممرض)" },
+        { val: "esmat", name: "عصمت (المحاسب)" },
+        { val: "gaber", name: "جابر (الحارس)" }
+      ],
+      proofs: [
+        { val: "luminol_passport", name: "تفاعل اللومينول الكيميائي وجواز سفر الضحية بخزانة مجدي" },
+        { val: "scalpel_11", name: "نقص المشرط الجراحي مقاس 11" },
+        { val: "flight_ticket", name: "تذكرة الطيران غير المستخدمة" },
+        { val: "burned_cloth", name: "الملاءات المحترقة بالمحرقة" },
+        { val: "night_drive", name: "سيارة مجدي في 2:00 فجراً" }
+      ],
+      ansCulprit: "magdy",
+      ansProof: "luminol_passport",
+      explain: "د. مجدي قتل الطبيب لسرقة العيادة ومسح مسرح الجريمة بالكلور وادعى سفره، لكن تفاعل اللومينول فضح الدماء ووجود جواز سفر الطبيب بخزانته نسف رواية السفر بالكامل!"
+    },
+    {
+      id: 9,
+      title: "قضية 9: قرصنة السيرفر وقالب السيليكون",
+      brief: "تسريب بيانات وصفقات سرية من خادم المقر الرئيسي للشركة في 3:00 فجراً عبر فتح الباب البيومتري ببصمة إبهام رئيس مجلس الإدارة.",
+      clues: [
+        { t: "🖐️ غشاء سيليكون رقيق", d: "بقايا قالب سيليكون متطابق مع بصمة رئيس الإدارة على ماسح الباب." },
+        { t: "💻 سجل الخادم المباشر", d: "نقل البيانات تم يدوياً من الشاشة الداخلية وليس عبر اتصال إنترنت خارجي." },
+        { t: "🏨 إثبات وجود الرئيس بسويسرا", d: "الرئيس يشارك بمؤتمر دولي ومثبت تواجده بكاميرات الفندق بسويسرا." },
+        { t: "📹 كاميرا الممر المعطلة", d: "فُصل كابل الفيديو الخاص بها يدوياً قبل الدخول بثلاث دقائق." },
+        { t: "💾 ذاكرة تخزين مشفرة", d: "عُثر على فلاش ميموري مخبأ بعلبة شاي داخل مكتب تقنية المعلومات." }
+      ],
+      suspects: [
+        { n: "وسيم (مدير تقنية المعلومات)", b: "خبير ولديه وصول لمعدات أخذ قوالب البصمات للصيانة.", q: "السيرفر تعرض لاختراق سيبراني من قراصنة أجانب عن بعد!" },
+        { n: "نجوى (مديرة الاستثمار)", b: "تمتلك صلاحية الاطلاع على الملفات.", q: "كنت في بيتي وتابعت الإنذار الأمني فور وروده على بريدي." },
+        { n: "طارق (مسؤول الأمن)", b: "يراقب شاشات الممرات ليلاً.", q: "انقطعت شاشة الممر فظننت أنه عطل في كابلات التوصيل." },
+        { n: "هاني (مهندس الشبكات المفصول)", b: "فُصل قبل أسبوع من الحادث.", q: "سُحبت بطاقتي ولم أدخل مقر الشركة منذ 5 أيام." }
+      ],
+      culprits: [
+        { val: "waseem", name: "وسيم (مدير الـ IT)" },
+        { val: "najwa", name: "نجوى (مديرة الاستثمار)" },
+        { val: "tarek_sec", name: "طارق (مسؤول الأمن)" },
+        { val: "hani_eng", name: "هاني (مهندس الشبكات)" }
+      ],
+      proofs: [
+        { val: "silicone_log", name: "قالب بصمة السيليكون والدخول المباشر من الشاشة الداخلية" },
+        { val: "server_log", name: "سجل الخادم المباشر" },
+        { val: "swiss_cam", name: "كاميرات فندق سويسرا" },
+        { val: "cable_disconnect", name: "فصل كابل الكاميرا اليدوي" },
+        { val: "flash_drive", name: "الفلاش ميموري بعلبة الشاي" }
+      ],
+      ansCulprit: "waseem",
+      ansProof: "silicone_log",
+      explain: "وسيم صنع بصمة سيليكونية لإبهام الرئيس لدخول غرفة الخوادم ونقل البيانات محلياً بيده، مدعياً حدوث اختراق أجنبي خارجي للتنصل من المسؤولية."
+    },
+    {
+      id: 10,
+      title: "قضية 10: سم التخرج والنسخة المكسورة (قضية الترقية)",
+      brief: "مقتل عميد كلية الصيدلة في حفل التخرج إثر شرب كأس عصير محقون بعقار الديجوكسين القلبي عالي التركيز والقاتل فوراً.",
+      clues: [
+        { t: "🧪 عقار الديجوكسين المركز", d: "مركب خطير محفوظ فقط في خزانة السموم برقم تشغيلة خاص بالكلية." },
+        { t: "🔑 سن المفتاح المكسور", d: "قطعة معدنية صغيرة مكسورة داخل قفل خزانة السموم لمفتاح مقلد." },
+        { t: "🧪 سرنجة ميكرو دقيقة", d: "ملقاة خلف ستائر المسرح عليها قطرات عصير متطابقة مع السم." },
+        { t: "📜 قرار رفض الترقية", d: "عُثر عليه بمكتب العميد يرفض ترقية أستاذ لسرقته أبحاثاً علمية." },
+        { t: "👔 بقعة عصير على الكم", d: "آثار مجهرية لقطرات العصير المسموم على طرف كم أحد المحتفلين." }
+      ],
+      suspects: [
+        { n: "د. إيهاب (أستاذ العقاقير)", b: "صاحب قرار الترقية المرفوض ومفتاحه المكرر مكسور الطرف.", q: "كنت جالساً بين الأساتذة ولم أقترب من منضدة التكريم مطلقاً!" },
+        { n: "رأفت (أمين المعمل المركزي)", b: "المسؤول عن خزانة السموم ومفتاحه الأصلي سليم.", q: "وجدت قفل الخزانة معطوباً بالكسر وأبلغت إدارة الكلية صباحاً." },
+        { n: "علا (المعيدة المشرفة)", b: "رتبت كؤوس العصير على المنصة.", q: "وضعت الكؤوس كما تسلمتها وذهبت لتنظيم طابور الخريجين." },
+        { n: "د. شريف (وكيل الكلية)", b: "يطمح لمنصب العميد خلفاً للضحية.", q: "كنت ألقي كلمة الافتتاح بالمسرح أمام الجميع طوال الحفل." }
+      ],
+      culprits: [
+        { val: "ehab", name: "د. إيهاب (أستاذ العقاقير)" },
+        { val: "raafat", name: "رأفت (أمين المعمل)" },
+        { val: "ola", name: "علا (المعيدة)" },
+        { val: "sherif_dean", name: "د. شريف (وكيل الكلية)" }
+      ],
+      proofs: [
+        { val: "broken_key_juice", name: "سن المفتاح المكسور بخزانة السموم وبقعة العصير على كمه" },
+        { val: "micro_syringe", name: "السرنجة الدقيقة خلف الستار" },
+        { val: "rejection_paper", name: "قرار رفض الترقية" },
+        { val: "batch_num", name: "رقم تشغيلة عقار الديجوكسين" },
+        { val: "podium_tray", name: "صينية الكؤوس التكريمية" }
+      ],
+      ansCulprit: "ehab",
+      ansProof: "broken_key_juice",
+      explain: "د. إيهاب انتقم لرفض ترقيته وسرق الديجوكسين بمفتاح مقلد انكسر طرفه بالقفل، ثم حقن العصير بالسرنجة، وفضحه تطابق سن المفتاح مع قطرات العصير المسموم على كمه!"
+    }
+  ];
+
+  let player = JSON.parse(localStorage.getItem('det_save_handcrafted')) || {
+    score: 0,
+    activeCaseId: 1,
+    solvedCases: []
+  };
+
+  function saveGame() {
+    localStorage.setItem('det_save_handcrafted', JSON.stringify(player));
+  }
+
+  function updateStatus() {
+    const isPromoted = player.solvedCases.length >= 10;
+    document.getElementById('player-rank').innerText = isPromoted ? "ملازم تحقيقات (مُرقّى) 🎖️" : "مساعد باحث جنائي";
+    document.getElementById('player-score').innerText = player.score;
+  }
+
+  function renderCasesNav() {
+    const nav = document.getElementById('cases-nav');
+    nav.innerHTML = '';
+    HANDMADE_CASES.forEach((c, idx) => {
+      const isSolved = player.solvedCases.includes(c.id);
+      const isAvailable = c.id === 1 || player.solvedCases.includes(c.id - 1);
+
+      const cell = document.createElement('div');
+      cell.className = `case-cell ${c.id === player.activeCaseId ? 'active' : ''} ${isSolved ? 'solved' : ''} ${!isAvailable && !isSolved ? 'locked' : ''}`;
+      cell.innerText = c.id;
+      cell.onclick = () => {
+        if (isAvailable || isSolved) {
+          loadCase(c.id);
+        } else {
+          alert('حل القضية السابقة أولاً لفتح هذا الملف!');
+        }
+      };
+      nav.appendChild(cell);
+    });
+  }
+
+  function loadCase(id) {
+    player.activeCaseId = id;
+    renderCasesNav();
+
+    const c = HANDMADE_CASES.find(item => item.id === id);
+    document.getElementById('case-title').innerText = c.title;
+    document.getElementById('case-brief').innerText = c.brief;
+
+    // ملء الأدلة
+    document.getElementById('clues-list').innerHTML = c.clues.map(clue => `
+      <div class="card">
+        <h4>${clue.t}</h4>
+        <p>${clue.d}</p>
+      </div>
+    `).join('');
+
+    // ملء المشتبه بهم
+    document.getElementById('suspects-list').innerHTML = c.suspects.map(s => `
+      <div class="card suspect-card">
+        <h4>${s.n}</h4>
+        <p><strong>الخلفية:</strong> ${s.b}</p>
+        <div class="suspect-quote">"${s.q}"</div>
+      </div>
+    `).join('');
+
+    // ملء قوائم الاختيار
+    document.getElementById('culprit-select').innerHTML = '<option value="">-- حدد المتهم الحقيقي --</option>' + 
+      c.culprits.map(opt => `<option value="${opt.val}">${opt.name}</option>`).join('');
+
+    document.getElementById('proof-select').innerHTML = '<option value="">-- حدد الدليل الحاسم --</option>' + 
+      c.proofs.map(opt => `<option value="${opt.val}">${opt.name}</option>`).join('');
+
+    showTab('clues');
+  }
+
+  function showTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+    const idx = tab === 'clues' ? 0 : (tab === 'suspects' ? 1 : 2);
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    document.getElementById(`tab-${tab}`).classList.add('active');
+  }
+
+  function processVerdict() {
+    const c = HANDMADE_CASES.find(item => item.id === player.activeCaseId);
+    const chosenCulprit = document.getElementById('culprit-select').value;
+    const chosenProof = document.getElementById('proof-select').value;
+
+    if (!chosenCulprit || !chosenProof) {
+      alert('اختر المتهم والدليل أولاً!');
+      return;
+    }
+
+    const modal = document.getElementById('verdict-modal');
+    const title = document.getElementById('modal-title');
+    const desc = document.getElementById('modal-desc');
+
+    if (chosenCulprit === c.ansCulprit && chosenProof === c.ansProof) {
+      if (!player.solvedCases.includes(c.id)) {
+        player.score += 100;
+        player.solvedCases.push(c.id);
+
+        if (player.solvedCases.length === 10) {
+          title.innerText = "ترقية عسكرية مستحقة! 🎖️";
+          title.style.color = "var(--accent)";
+          desc.innerHTML = `أغلقت جميع قضايا المستوى الأول بنجاح تام وحصلت على 1000 نقطة!<br><strong>مبروك ترقيتك إلى رتبة: ملازم تحقيقات</strong>.`;
+          saveGame();
+          updateStatus();
+          renderCasesNav();
+          modal.style.display = 'flex';
+          return;
+        }
+      }
+
+      title.innerText = "استنتاج جنائي بارع (+100 نقطة) ⚖️";
+      title.style.color = "var(--success)";
+      desc.innerHTML = c.explain;
+    } else {
+      player.score = Math.max(0, player.score - 30);
+      title.innerText = "استنتاج خاطئ (-30 نقطة) ❌";
+      title.style.color = "var(--danger)";
+      desc.innerText = "الدليل المختار لا يدحض حجة غياب المتهم أو أن المتهم ليس هو الفاعل الحقيقي. تم خصم 30 نقطة.";
+    }
+
+    saveGame();
+    updateStatus();
+    renderCasesNav();
+    modal.style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('verdict-modal').style.display = 'none';
+  }
+
+  updateStatus();
+  renderCasesNav();
+  loadCase(player.activeCaseId);
+</script>
+</body>
+</html>
